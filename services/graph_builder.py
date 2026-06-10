@@ -1,4 +1,5 @@
 from typing import TypedDict
+
 from langgraph.graph import StateGraph, END
 
 from services.llm import llm
@@ -10,23 +11,35 @@ class GraphState(TypedDict):
     answer: str
 
 
-def retrieve(state):
+def retrieve_node(state):
+
+    question = state["question"]
+
+    context = (
+        "This document contains IPL team profiles, "
+        "player statistics, venue data, match predictions "
+        "and Dream11 related information."
+    )
 
     return {
-        "context": state["context"]
+        "question": question,
+        "context": context
     }
 
 
-def generate(state):
+def generate_node(state):
+
+    question = state["question"]
+    context = state["context"]
 
     prompt = f"""
     Context:
-    {state['context']}
+    {context}
 
     Question:
-    {state['question']}
+    {question}
 
-    Answer from context only.
+    Answer:
     """
 
     response = llm.invoke(prompt)
@@ -36,23 +49,15 @@ def generate(state):
     }
 
 
-def build_graph():
+graph = StateGraph(GraphState)
 
-    workflow = StateGraph(GraphState)
+graph.add_node("retrieve", retrieve_node)
+graph.add_node("generate", generate_node)
 
-    workflow.add_node("retrieve", retrieve)
-    workflow.add_node("generate", generate)
+graph.set_entry_point("retrieve")
 
-    workflow.set_entry_point("retrieve")
+graph.add_edge("retrieve", "generate")
 
-    workflow.add_edge(
-        "retrieve",
-        "generate"
-    )
+graph.add_edge("generate", END)
 
-    workflow.add_edge(
-        "generate",
-        END
-    )
-
-    return workflow.compile()
+app = graph.compile()
