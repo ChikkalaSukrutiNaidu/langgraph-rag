@@ -2,23 +2,20 @@ from services.pdf_loader import load_pdf
 from services.retriever import split_documents
 from services.graph_builder import build_graph
 
-
-docs = load_pdf(
-    "data/sample.pdf"
-)
+docs = load_pdf("data/sample.pdf")
 
 chunks = split_documents(docs)
 
 graph = build_graph()
 
+question = input("Ask Question: ")
+
 result = graph.invoke(
     {
-        "question":
-        "Who is the captain of CSK?",
-        "chunks":
-        chunks
+        "question": question,
+        "chunks": chunks
     }
 )
 
-print("\nANSWER:\n")
+print("\nAnswer:\n")
 print(result["answer"])

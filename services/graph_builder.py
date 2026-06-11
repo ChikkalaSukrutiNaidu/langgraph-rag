@@ -9,46 +9,92 @@ from services.retriever import simple_retrieve
 class GraphState(TypedDict):
     question: str
     chunks: list
+    route: str
     context: str
     answer: str
 
 
-def retrieve_node(state):
+def router_node(state):
 
-    print("Retrieving context...")
+    question = state["question"].lower()
 
-    question = state["question"]
-    chunks = state["chunks"]
+    if any(word in question for word in
+           ["captain", "team", "csk", "rcb", "mi"]):
+
+        route = "team"
+
+    elif any(word in question for word in
+             ["player", "runs", "wickets",
+              "kohli", "dhoni", "gaikwad"]):
+
+        route = "player"
+
+    else:
+        route = "general"
+
+    print("Route:", route)
+
+    return {"route": route}
+
+
+def team_node(state):
+
+    print("Team Agent Running")
 
     docs = simple_retrieve(
-        chunks,
-        question
+        state["chunks"],
+        state["question"]
     )
 
     context = "\n".join(
-        [doc.page_content for doc in docs]
+        [d.page_content for d in docs]
     )
 
-    return {
-        "context": context
-    }
+    return {"context": context}
+
+
+def player_node(state):
+
+    print("Player Agent Running")
+
+    docs = simple_retrieve(
+        state["chunks"],
+        state["question"]
+    )
+
+    context = "\n".join(
+        [d.page_content for d in docs]
+    )
+
+    return {"context": context}
+
+
+def general_node(state):
+
+    print("General Agent Running")
+
+    docs = simple_retrieve(
+        state["chunks"],
+        state["question"]
+    )
+
+    context = "\n".join(
+        [d.page_content for d in docs]
+    )
+
+    return {"context": context}
 
 
 def generate_node(state):
 
-    print("Generating answer...")
-
-    question = state["question"]
-    context = state["context"]
-
     prompt = f"""
-    Answer using only the context.
-
     Context:
-    {context}
+    {state['context']}
 
     Question:
-    {question}
+    {state['question']}
+
+    Answer:
     """
 
     response = llm.invoke(prompt)
@@ -58,32 +104,43 @@ def generate_node(state):
     }
 
 
+def route_decision(state):
+
+    return state["route"]
+
+
 def build_graph():
 
     graph = StateGraph(GraphState)
 
-    graph.add_node(
-        "retrieve",
-        retrieve_node
+    graph.add_node("router", router_node)
+
+    graph.add_node("team", team_node)
+
+    graph.add_node("player", player_node)
+
+    graph.add_node("general", general_node)
+
+    graph.add_node("generate", generate_node)
+
+    graph.set_entry_point("router")
+
+    graph.add_conditional_edges(
+        "router",
+        route_decision,
+        {
+            "team": "team",
+            "player": "player",
+            "general": "general"
+        }
     )
 
-    graph.add_node(
-        "generate",
-        generate_node
-    )
+    graph.add_edge("team", "generate")
 
-    graph.set_entry_point(
-        "retrieve"
-    )
+    graph.add_edge("player", "generate")
 
-    graph.add_edge(
-        "retrieve",
-        "generate"
-    )
+    graph.add_edge("general", "generate")
 
-    graph.add_edge(
-        "generate",
-        END
-    )
+    graph.add_edge("generate", END)
 
     return graph.compile()
