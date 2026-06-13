@@ -1,6 +1,5 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-
 def split_documents(documents):
 
     splitter = RecursiveCharacterTextSplitter(
@@ -34,4 +33,4 @@ def simple_retrieve(chunks, query, k=4):
         reverse=True
     )
 
-    return [chunk for score, chunk in scored_chunks[:k]]
+    return [c for _, c in scored_chunks[:k]]
