@@ -19,7 +19,7 @@ def router_node(state):
     question = state["question"].lower()
 
     if any(word in question for word in
-           ["captain", "team", "csk", "rcb", "mi"]):
+           ["captain", "team", "csk", "rcb", "mi", "srh", "kkr"]):
 
         route = "team"
 
@@ -47,7 +47,7 @@ def team_node(state):
     )
 
     context = "\n".join(
-        [d.page_content for d in docs]
+        [doc.page_content for doc in docs]
     )
 
     return {"context": context}
@@ -63,7 +63,7 @@ def player_node(state):
     )
 
     context = "\n".join(
-        [d.page_content for d in docs]
+        [doc.page_content for doc in docs]
     )
 
     return {"context": context}
@@ -79,7 +79,7 @@ def general_node(state):
     )
 
     context = "\n".join(
-        [d.page_content for d in docs]
+        [doc.page_content for doc in docs]
     )
 
     return {"context": context}
@@ -87,15 +87,29 @@ def general_node(state):
 
 def generate_node(state):
 
+    context = state["context"]
+    question = state["question"]
+
+    print("Generating answer...")
+
     prompt = f"""
-    Context:
-    {state['context']}
+You are an IPL Assistant.
 
-    Question:
-    {state['question']}
+Answer ONLY from the given context.
 
-    Answer:
-    """
+If answer is not available in context,
+reply exactly:
+
+Information not found in document.
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:
+"""
 
     response = llm.invoke(prompt)
 
@@ -116,9 +130,7 @@ def build_graph():
     graph.add_node("router", router_node)
 
     graph.add_node("team", team_node)
-
     graph.add_node("player", player_node)
-
     graph.add_node("general", general_node)
 
     graph.add_node("generate", generate_node)
@@ -136,9 +148,7 @@ def build_graph():
     )
 
     graph.add_edge("team", "generate")
-
     graph.add_edge("player", "generate")
-
     graph.add_edge("general", "generate")
 
     graph.add_edge("generate", END)
