@@ -34,4 +34,4 @@ def simple_retrieve(chunks, query, k=4):
         reverse=True
     )
 
-    return [c for _, c in scored_chunks[:k]]
+    return [chunk for score, chunk in scored_chunks[:k]]
